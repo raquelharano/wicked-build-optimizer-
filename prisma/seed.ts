@@ -17,25 +17,25 @@ async function main() {
   await prisma.weapon.deleteMany()
 
   console.log(`Inserindo ${WEAPONS.length} armas...`)
-  await prisma.weapon.createMany({ data: WEAPONS })
+  await prisma.weapon.createMany({ data: WEAPONS as any })
 
   console.log("Inserindo armaduras...")
-  await prisma.armorSet.createMany({ data: ARMOR_SETS })
+  await prisma.armorSet.createMany({ data: ARMOR_SETS as any })
 
   console.log("Inserindo runas...")
-  await prisma.rune.createMany({ data: RUNES })
+  await prisma.rune.createMany({ data: RUNES as any })
 
   console.log("Inserindo gemas...")
-  await prisma.gem.createMany({ data: GEMS })
+  await prisma.gem.createMany({ data: GEMS as any })
 
   console.log("Inserindo facets...")
-  await prisma.facet.createMany({ data: FACETS })
+  await prisma.facet.createMany({ data: FACETS as any })
 
   console.log("Inserindo acessórios...")
-  await prisma.accessory.createMany({ data: ACCESSORIES })
+  await prisma.accessory.createMany({ data: ACCESSORIES as any })
 
   console.log("Inserindo encantamentos...")
-  await prisma.enchantment.createMany({ data: ENCHANTMENTS })
+  await prisma.enchantment.createMany({ data: ENCHANTMENTS as any })
 
   console.log("✅ Seed concluído!")
 }
