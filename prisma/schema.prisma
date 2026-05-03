@@ -1,0 +1,234 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../app/generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
+
+enum AttackSpeed {
+  Slow
+  Normal
+  Fast
+  VeryFast
+}
+
+enum WeaponRange {
+  Melee
+  Ranged
+}
+
+enum WeightClass {
+  Light
+  Medium
+  Heavy
+}
+
+enum Difficulty {
+  Easy
+  Medium
+  Hard
+}
+
+enum Archetype {
+  MeleeBerserker
+  TankBruiser
+  ElementalRanger
+  CriticalAssassin
+  SpellbladeHybrid
+}
+
+// ─── ARMAS ───────────────────────────────────────────────────────────────────
+
+model Weapon {
+  id                    String      @id @default(cuid())
+  name                  String      @unique
+  category              String
+  baseDamage            Int
+  elementalDamage       Int         @default(0)
+  scalingTable          Json        // ex: {"Strength": "S", "Dexterity": "C"}
+  attackSpeed           AttackSpeed
+  range                 WeaponRange
+  twoHanded             Boolean     @default(false)
+  maxRuneSlots          Int         @default(0)
+  maxGemSlots           Int         @default(0)
+  enchantments          String[]
+  facets                String[]
+  requirements          Json        // ex: {"Strength": 15}
+  isUnique              Boolean     @default(false)
+  playstyleTags         String[]
+  patchVersion          String
+  needsReview           Boolean     @default(false)
+  sourceUrl             String?
+
+  builds                Build[]
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+}
+
+// ─── ARMADURAS ───────────────────────────────────────────────────────────────
+
+model ArmorSet {
+  id                    String      @id @default(cuid())
+  name                  String      @unique
+  weightClass           WeightClass
+  helmet                Json        // { defense, resistances, weight }
+  chest                 Json
+  gloves                Json
+  boots                 Json
+  totalDefense          Int
+  resistances           Json        // ex: {"Fire": 10, "Ice": 5}
+  setBonusThreshold     Int         @default(2)
+  setBonusDescription   String?
+  synergyTags           String[]
+  patchVersion          String
+  needsReview           Boolean     @default(false)
+
+  builds                Build[]
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+}
+
+// ─── ACESSÓRIOS ──────────────────────────────────────────────────────────────
+
+model Accessory {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  effects        String[]
+  attributeBonus Json     // ex: {"Strength": 5}
+  patchVersion   String
+  needsReview    Boolean  @default(false)
+
+  builds         Build[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ─── RUNAS ───────────────────────────────────────────────────────────────────
+
+model Rune {
+  id                    String   @id @default(cuid())
+  name                  String   @unique
+  effects               String[]
+  elementalType         String?
+  triggerCondition      String
+  cooldownSeconds       Float?
+  stackLimit            Int?
+  compatibleWeaponTypes String[]
+  synergyTags           String[]
+  patchVersion          String
+  needsReview           Boolean  @default(false)
+
+  builds                Build[]
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// ─── GEMAS ───────────────────────────────────────────────────────────────────
+
+model Gem {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  rarity          String
+  effects         String[]
+  elementalType   String?
+  synergyTags     String[]
+  compatibleItems String[]
+  patchVersion    String
+  needsReview     Boolean  @default(false)
+
+  builds          Build[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── ENCANTAMENTOS ───────────────────────────────────────────────────────────
+
+model Enchantment {
+  id                    String   @id @default(cuid())
+  name                  String   @unique
+  effects               String[]
+  compatibleCategories  String[]
+  patchVersion          String
+  needsReview           Boolean  @default(false)
+
+  builds                Build[]
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// ─── FACETS ──────────────────────────────────────────────────────────────────
+
+model Facet {
+  id                    String   @id @default(cuid())
+  name                  String   @unique
+  effectDescription     String
+  triggerCondition      String
+  compatibleWeaponTypes String[]
+  synergyTags           String[]
+  patchVersion          String
+  needsReview           Boolean  @default(false)
+
+  builds                Build[]
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// ─── BUILDS ──────────────────────────────────────────────────────────────────
+
+model Build {
+  id                  String      @id @default(cuid())
+  title               String
+  archetype           Archetype
+  playstyle           String
+  difficulty          Difficulty
+  score               Float
+  isStarterBuild      Boolean     @default(false)
+  patchVersion        String
+  sourceUrl           String?
+  elementalType       String?
+  attributes          Json        // ex: {"Strength": 20, "Dexterity": 10}
+  attributeTotal      Int
+  gameplayExplanation String
+  synergyExplanation  String
+  strengths           String[]
+  weaknesses          String[]
+  needsReview         Boolean     @default(false)
+
+  weapon              Weapon      @relation(fields: [weaponId], references: [id])
+  weaponId            String
+  armorSet            ArmorSet    @relation(fields: [armorSetId], references: [id])
+  armorSetId          String
+  accessories         Accessory[]
+  runes               Rune[]
+  gems                Gem[]
+  enchantments        Enchantment[]
+  facets              Facet[]
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
+
+// ─── LOGS DE SCRAPING ────────────────────────────────────────────────────────
+
+model ScrapeLog {
+  id            String   @id @default(cuid())
+  source        String
+  status        String   // success, error, partial
+  itemsFound    Int      @default(0)
+  itemsChanged  Int      @default(0)
+  errorMessage  String?
+
+  createdAt     DateTime @default(now())
+}

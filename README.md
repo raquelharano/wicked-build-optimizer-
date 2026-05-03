@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Wicked Build Optimizer
 
-## Getting Started
+Recomendador de builds para **No Rest for the Wicked**. Selecione o tipo de arma e seus atributos preferidos — o app retorna até 5 builds completas e explicadas automaticamente.
 
-First, run the development server:
+> Projeto open source, gratuito e sem necessidade de login.
+
+---
+
+## O que o app faz
+
+- Filtra por tipo de arma, atributos, elemento e facets
+- Recomenda entre 1 e 5 builds viáveis com scores calculados
+- Explica como jogar cada build e por que ela funciona
+- Mostra pontos fortes, fracos e nível de dificuldade
+- Dados atualizados semanalmente a partir de norestforthewicked.gg
+
+## Stack
+
+- **Frontend + API:** Next.js (App Router) + TailwindCSS
+- **Banco de dados:** PostgreSQL via Supabase ou Railway
+- **ORM:** Prisma
+- **Cache:** Redis via Upstash
+- **Deploy:** Vercel
+
+## Rodar localmente
 
 ```bash
+# 1. Clone o repositório
+git clone https://github.com/seu-usuario/wicked-build-optimizer.git
+cd wicked-build-optimizer
+
+# 2. Instale as dependências
+npm install
+
+# 3. Configure as variáveis de ambiente
+cp .env.example .env
+# Edite o .env com suas credenciais do banco de dados
+
+# 4. Gere o cliente Prisma e aplique o schema
+npx prisma generate
+npx prisma migrate dev
+
+# 5. Inicie o servidor de desenvolvimento
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse: http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Banco de dados gratuito
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Supabase (recomendado):** supabase.com → novo projeto → Settings → Database → copie a connection string → cole no `.env` como `DATABASE_URL`
 
-## Learn More
+**Railway:** railway.app → novo projeto → PostgreSQL → copie a connection string → cole no `.env`
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy no Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Push do código para o GitHub
+2. Importe o repositório em vercel.com
+3. Configure as variáveis de ambiente no painel
+4. Deploy automático a cada push na `main`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Contribuindo
 
-## Deploy on Vercel
+Contribuições são bem-vindas! Abra uma issue ou pull request.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Licença
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT — use, modifique e distribua livremente.
+
+---
+
+*Dados: norestforthewicked.gg*
