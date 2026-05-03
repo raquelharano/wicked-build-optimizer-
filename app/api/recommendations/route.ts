@@ -71,6 +71,16 @@ async function generateBuilds(
 
   if (weapons.length === 0) return []
 
+  // Se o usuário selecionou atributos, filtrar armas que escalam com pelo menos um deles
+  const compatibleWeapons = attributes.length > 0
+    ? weapons.filter((w) => {
+        const scaling = w.scalingTable as Record<string, string>
+        return attributes.some((attr) => attr in scaling)
+      })
+    : weapons
+  // Se nenhuma arma da categoria escala com os atributos escolhidos, usar todas (relaxamento)
+  const weaponsToEvaluate = compatibleWeapons.length > 0 ? compatibleWeapons : weapons
+
   // Buscar itens de suporte
   const [armorSets, runes, gems, facets] = await Promise.all([
     prisma.armorSet.findMany(),
@@ -93,7 +103,7 @@ async function generateBuilds(
     let bestScore = -1
     let bestBuild = null
 
-    for (const weapon of weapons) {
+    for (const weapon of weaponsToEvaluate) {
       // Filtrar runas compatíveis com a arma
       const compatibleRunes = runes.filter(
         (r: { compatibleWeaponTypes: string[] }) =>
@@ -112,7 +122,7 @@ async function generateBuilds(
         selectedAttributes: attributes,
         selectedElement: element,
         archetype,
-        allWeaponsOfSameCategory: weapons as any[],
+        allWeaponsOfSameCategory: weaponsToEvaluate as any[],
         popularityRank: null,
       }
 

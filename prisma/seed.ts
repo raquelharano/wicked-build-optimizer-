@@ -16,7 +16,7 @@ async function main() {
   await prisma.armorSet.deleteMany()
   await prisma.weapon.deleteMany()
 
-  console.log("Inserindo armas...")
+  console.log(`Inserindo ${WEAPONS.length} armas...`)
   await prisma.weapon.createMany({ data: WEAPONS })
 
   console.log("Inserindo armaduras...")
@@ -40,264 +40,328 @@ async function main() {
   console.log("✅ Seed concluído!")
 }
 
+// ─── HELPER ───────────────────────────────────────────────────────────────────
+
+type Speed = "Slow" | "Normal" | "Fast" | "VeryFast"
+type RangeType = "Melee" | "Ranged"
+
+interface Override {
+  s?: Record<string, string>  // scaling override
+  ed?: number                 // elemental damage
+  unique?: boolean
+}
+
+function cat(
+  names: string[],
+  category: string,
+  baseDmg: number,
+  scaling: Record<string, string>,
+  speed: Speed,
+  twoHanded: boolean,
+  range: RangeType,
+  runeSlots: number,
+  gemSlots: number,
+  req: Record<string, number>,
+  tags: string[],
+  overrides: Record<string, Override> = {}
+) {
+  return names.map((name, i) => {
+    const ov = overrides[name] ?? {}
+    return {
+      name,
+      category,
+      baseDamage: baseDmg + (i % 5) * 4,
+      elementalDamage: ov.ed ?? 0,
+      scalingTable: ov.s ?? scaling,
+      attackSpeed: speed,
+      range,
+      twoHanded,
+      maxRuneSlots: runeSlots + (ov.unique ? 1 : 0),
+      maxGemSlots: gemSlots,
+      enchantments: [] as string[],
+      facets: [] as string[],
+      requirements: req,
+      isUnique: ov.unique ?? false,
+      playstyleTags: tags,
+      patchVersion: "0.1",
+      needsReview: false,
+    }
+  })
+}
+
 // ─── ARMAS ────────────────────────────────────────────────────────────────────
 
 const WEAPONS = [
-  // Straight Swords
-  {
-    name: "Iron Longsword",
-    category: "Straight Swords",
-    baseDamage: 45,
-    elementalDamage: 0,
-    scalingTable: { Strength: "C", Dexterity: "B" },
-    attackSpeed: "Normal",
-    range: "Melee",
-    twoHanded: false,
-    maxRuneSlots: 2,
-    maxGemSlots: 1,
-    enchantments: [],
-    facets: [],
-    requirements: { Strength: 10, Dexterity: 12 },
-    isUnique: false,
-    playstyleTags: ["melee", "aggressive", "balanced"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  {
-    name: "Crucible Longsword",
-    category: "Straight Swords",
-    baseDamage: 62,
-    elementalDamage: 0,
-    scalingTable: { Strength: "B", Dexterity: "A" },
-    attackSpeed: "Normal",
-    range: "Melee",
-    twoHanded: false,
-    maxRuneSlots: 3,
-    maxGemSlots: 2,
-    enchantments: [],
-    facets: [],
-    requirements: { Strength: 14, Dexterity: 16 },
-    isUnique: false,
-    playstyleTags: ["melee", "aggressive", "critical", "technical"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  // Great Swords
-  {
-    name: "Iron Greatsword",
-    category: "Great Swords",
-    baseDamage: 72,
-    elementalDamage: 0,
-    scalingTable: { Strength: "B" },
-    attackSpeed: "Slow",
-    range: "Melee",
-    twoHanded: true,
-    maxRuneSlots: 2,
-    maxGemSlots: 1,
-    enchantments: [],
-    facets: [],
-    requirements: { Strength: 18 },
-    isUnique: false,
-    playstyleTags: ["melee", "stagger", "aggressive", "high_risk"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  {
-    name: "Siegreave",
-    category: "Great Swords",
-    baseDamage: 90,
-    elementalDamage: 0,
-    scalingTable: { Strength: "A" },
-    attackSpeed: "Slow",
-    range: "Melee",
-    twoHanded: true,
-    maxRuneSlots: 3,
-    maxGemSlots: 2,
-    enchantments: [],
-    facets: [],
-    requirements: { Strength: 22 },
-    isUnique: true,
-    playstyleTags: ["melee", "stagger", "aggressive", "high_risk"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  // Axes
-  {
-    name: "Handaxe",
-    category: "Axes",
-    baseDamage: 42,
-    elementalDamage: 0,
-    scalingTable: { Strength: "C", Dexterity: "C" },
-    attackSpeed: "Fast",
-    range: "Melee",
-    twoHanded: false,
-    maxRuneSlots: 2,
-    maxGemSlots: 1,
-    enchantments: [],
-    facets: [],
-    requirements: { Strength: 10 },
-    isUnique: false,
-    playstyleTags: ["melee", "aggressive"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  // Great Axes
-  {
-    name: "War Axe",
-    category: "Great Axes",
-    baseDamage: 80,
-    elementalDamage: 0,
-    scalingTable: { Strength: "A" },
-    attackSpeed: "Slow",
-    range: "Melee",
-    twoHanded: true,
-    maxRuneSlots: 2,
-    maxGemSlots: 1,
-    enchantments: [],
-    facets: [],
-    requirements: { Strength: 20 },
-    isUnique: false,
-    playstyleTags: ["melee", "stagger", "aggressive", "high_risk"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  // Staves
-  {
-    name: "Staff of Smiting",
-    category: "Staves",
-    baseDamage: 35,
-    elementalDamage: 30,
-    scalingTable: { Intelligence: "B", Faith: "C" },
-    attackSpeed: "Normal",
-    range: "Melee",
-    twoHanded: true,
-    maxRuneSlots: 3,
-    maxGemSlots: 2,
-    enchantments: [],
-    facets: [],
-    requirements: { Intelligence: 16, Faith: 12 },
-    isUnique: false,
-    playstyleTags: ["magic", "hybrid", "buff", "elemental"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  {
-    name: "Arcane Staff",
-    category: "Staves",
-    baseDamage: 28,
-    elementalDamage: 48,
-    scalingTable: { Intelligence: "S" },
-    attackSpeed: "Slow",
-    range: "Melee",
-    twoHanded: true,
-    maxRuneSlots: 3,
-    maxGemSlots: 3,
-    enchantments: [],
-    facets: [],
-    requirements: { Intelligence: 22 },
-    isUnique: false,
-    playstyleTags: ["magic", "elemental", "dot", "ranged"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  // Bows
-  {
-    name: "Shortbow",
-    category: "Bows",
-    baseDamage: 38,
-    elementalDamage: 0,
-    scalingTable: { Dexterity: "B" },
-    attackSpeed: "Fast",
-    range: "Ranged",
-    twoHanded: true,
-    maxRuneSlots: 2,
-    maxGemSlots: 1,
-    enchantments: [],
-    facets: [],
-    requirements: { Dexterity: 14 },
-    isUnique: false,
-    playstyleTags: ["ranged", "mobile", "dot"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  {
-    name: "Crucible Bow",
-    category: "Bows",
-    baseDamage: 55,
-    elementalDamage: 0,
-    scalingTable: { Dexterity: "A" },
-    attackSpeed: "Normal",
-    range: "Ranged",
-    twoHanded: true,
-    maxRuneSlots: 3,
-    maxGemSlots: 2,
-    enchantments: [],
-    facets: [],
-    requirements: { Dexterity: 18 },
-    isUnique: false,
-    playstyleTags: ["ranged", "mobile", "dot", "elemental"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  // Double Daggers
-  {
-    name: "Iron Daggers",
-    category: "Double Daggers",
-    baseDamage: 32,
-    elementalDamage: 0,
-    scalingTable: { Dexterity: "B" },
-    attackSpeed: "VeryFast",
-    range: "Melee",
-    twoHanded: false,
-    maxRuneSlots: 2,
-    maxGemSlots: 2,
-    enchantments: [],
-    facets: [],
-    requirements: { Dexterity: 12 },
-    isUnique: false,
-    playstyleTags: ["melee", "critical", "burst", "mobile", "technical"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  {
-    name: "Shadow Blades",
-    category: "Double Daggers",
-    baseDamage: 44,
-    elementalDamage: 0,
-    scalingTable: { Dexterity: "S" },
-    attackSpeed: "VeryFast",
-    range: "Melee",
-    twoHanded: false,
-    maxRuneSlots: 3,
-    maxGemSlots: 2,
-    enchantments: [],
-    facets: [],
-    requirements: { Dexterity: 20 },
-    isUnique: true,
-    playstyleTags: ["melee", "critical", "burst", "mobile", "technical"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
-  // Wands
-  {
-    name: "Wand of Burning",
-    category: "Wands",
-    baseDamage: 22,
-    elementalDamage: 50,
-    scalingTable: { Intelligence: "A" },
-    attackSpeed: "Fast",
-    range: "Ranged",
-    twoHanded: false,
-    maxRuneSlots: 2,
-    maxGemSlots: 2,
-    enchantments: [],
-    facets: [],
-    requirements: { Intelligence: 18 },
-    isUnique: false,
-    playstyleTags: ["ranged", "elemental", "dot", "magic"],
-    patchVersion: "0.1",
-    needsReview: false,
-  },
+
+  // ── Axes (one-handed, Strength) ──────────────────────────────────────────
+  ...cat(
+    ["Boarskin Tusk", "Hunter's Axe", "Jade-Spined Axe", "Reclaimer",
+     "Ripper", "Royal Hewn Axe", "Shroudcleaver", "Tongue Splitter"],
+    "Axes", 48, { Strength: "B", Dexterity: "C" },
+    "Normal", false, "Melee", 2, 1, { Strength: 12 },
+    ["melee", "aggressive"],
+    { "Royal Hewn Axe": { s: { Strength: "A" }, unique: true },
+      "Ripper":         { s: { Strength: "B" }, unique: true } }
+  ),
+
+  // ── Great Axes (two-handed, Strength) ────────────────────────────────────
+  ...cat(
+    ["Bandit's Cleaver", "Broken Fang", "Cavalier", "Gavlan's Great Axe",
+     "Gilded Twibill", "Mountain Eater", "Penelope", "Short Bardiche",
+     "Spalled Axe", "Warlord's Thirst"],
+    "Great Axes", 82, { Strength: "A" },
+    "Slow", true, "Melee", 2, 1, { Strength: 20 },
+    ["melee", "stagger", "aggressive", "high_risk"],
+    { "Warlord's Thirst": { s: { Strength: "S" }, unique: true },
+      "Mountain Eater":   { s: { Strength: "A" }, unique: true } }
+  ),
+
+  // ── Straight Swords (two-handed, Dex/Str) ────────────────────────────────
+  ...cat(
+    ["Azure Blade", "Backstabber", "Blood-Rusted Sword", "Coiled Sword",
+     "Cronus", "Governor's Dagger", "Keeper's Grace", "Nith Blade",
+     "Phalen Sliver", "Sacrament's Pride", "Weave Cutter", "Wooden Sword"],
+    "Straight Swords", 52, { Dexterity: "B", Strength: "C" },
+    "Normal", true, "Melee", 2, 1, { Dexterity: 14, Strength: 10 },
+    ["melee", "balanced", "aggressive"],
+    { "Sacrament's Pride": { s: { Dexterity: "A", Strength: "C" }, unique: true },
+      "Cronus":            { s: { Strength: "B", Dexterity: "B" }, unique: true },
+      "Wooden Sword":      { s: { Strength: "D", Dexterity: "D" } } }
+  ),
+
+  // ── Great Swords (two-handed, Strength) ──────────────────────────────────
+  ...cat(
+    ["Baron's Edge", "Blister", "Burning Thorn", "Claymore",
+     "Corpse Smeared Blade", "Culvarie", "Falstead's Fury", "Deep Mind",
+     "Festering Earth", "Freiheit", "Frost Bringer", "Gnarled Saw",
+     "Icebreaker", "Keeper's Mercy", "Shattered Sun", "Sieger",
+     "Solitude", "Summer's Sting"],
+    "Great Swords", 78, { Strength: "B" },
+    "Slow", true, "Melee", 2, 2, { Strength: 18 },
+    ["melee", "stagger", "aggressive", "high_risk"],
+    { "Sieger":        { s: { Strength: "A" }, unique: true },
+      "Frost Bringer": { s: { Strength: "B" }, ed: 20, unique: true },
+      "Burning Thorn": { s: { Strength: "C", Intelligence: "B" }, ed: 15 },
+      "Deep Mind":     { s: { Intelligence: "B", Strength: "C" }, ed: 20 } }
+  ),
+
+  // ── Bows (two-handed, Dexterity, Ranged) ─────────────────────────────────
+  ...cat(
+    ["Answered Prayer", "Glimmering Bolt", "Lacquered Bow", "Pale Ash",
+     "Patience", "Short Bow", "Siren's Song", "Twinned Recurve Bow",
+     "Woodland Protector", "Yewn Longbow"],
+    "Bows", 38, { Dexterity: "B" },
+    "Fast", true, "Ranged", 2, 1, { Dexterity: 14 },
+    ["ranged", "mobile", "dot"],
+    { "Siren's Song":        { s: { Dexterity: "A" }, unique: true },
+      "Answered Prayer":     { s: { Dexterity: "B", Faith: "C" }, unique: true },
+      "Woodland Protector":  { s: { Dexterity: "B" }, unique: true } }
+  ),
+
+  // ── Double Daggers (two-handed, Dexterity) ───────────────────────────────
+  ...cat(
+    ["All's Well", "Ash Soothed Daggers", "Bleeder's Delight", "Brothers Keepers",
+     "Chipped Daggers", "Death's Touch", "Grave Scrapers", "Rogue Messer",
+     "The Vizier's Advice", "Wavering Faith", "Wolf Bane"],
+    "Double Daggers", 30, { Dexterity: "A" },
+    "VeryFast", true, "Melee", 2, 2, { Dexterity: 16 },
+    ["melee", "critical", "burst", "mobile", "technical"],
+    { "Death's Touch":      { s: { Dexterity: "S" }, unique: true },
+      "Wavering Faith":     { s: { Dexterity: "B", Faith: "C" } },
+      "The Vizier's Advice":{ s: { Dexterity: "A" }, unique: true } }
+  ),
+
+  // ── Staves (two-handed, Intelligence/Faith, Magic) ───────────────────────
+  ...cat(
+    ["Alsoc's Ruined Staff", "Bear Slayer", "Cursed Crone", "Dried Hive",
+     "Falling Sky", "False Truth", "Gnarled Staff", "Pinwheel",
+     "Root Tender", "Sinner's Crown", "Spherin", "Stag Head"],
+    "Staves", 28, { Intelligence: "B" },
+    "Slow", true, "Melee", 3, 2, { Intelligence: 16 },
+    ["magic", "elemental", "buff", "hybrid"],
+    { "Stag Head":        { s: { Faith: "A" },               ed: 45, unique: true },
+      "Root Tender":      { s: { Intelligence: "B", Faith: "B" }, ed: 35 },
+      "Sinner's Crown":   { s: { Intelligence: "A" },         ed: 50, unique: true },
+      "Falling Sky":      { s: { Intelligence: "B", Faith: "C" }, ed: 40 },
+      "Spherin":          { s: { Intelligence: "S" },         ed: 55, unique: true },
+      "Cursed Crone":     { s: { Intelligence: "C", Faith: "B" }, ed: 38 },
+      "Alsoc's Ruined Staff": { s: { Intelligence: "D" },    ed: 20 },
+      "Gnarled Staff":    { s: { Intelligence: "C" },         ed: 30 },
+      "Bear Slayer":      { s: { Strength: "B" } },
+      "Dried Hive":       { s: { Intelligence: "B" },         ed: 32 },
+      "False Truth":      { s: { Intelligence: "B", Faith: "C" }, ed: 36 },
+      "Pinwheel":         { s: { Intelligence: "A" },         ed: 48 } }
+  ),
+
+  // ── Wands (one-handed, Intelligence, Ranged) ──────────────────────────────
+  ...cat(
+    ["Flame Becomes Us", "Sanglier Staff"],
+    "Wands", 22, { Intelligence: "A" },
+    "Fast", false, "Ranged", 2, 2, { Intelligence: 18 },
+    ["ranged", "elemental", "dot", "magic"],
+    { "Flame Becomes Us": { ed: 55, unique: true },
+      "Sanglier Staff":   { ed: 48 } }
+  ),
+
+  // ── Halberds (two-handed, Dex/Str) ───────────────────────────────────────
+  ...cat(
+    ["Bolein Polearm", "Executioner's Halberd", "God's Reach", "Gristleborn",
+     "Ocean Sweeper", "Phoenix Crest", "Regal Cleft", "Seabed Scraper",
+     "Serrated Cutter"],
+    "Halberds", 60, { Strength: "C", Dexterity: "B" },
+    "Normal", true, "Melee", 2, 1, { Strength: 14, Dexterity: 12 },
+    ["melee", "balanced", "stagger"],
+    { "God's Reach":            { s: { Strength: "B", Dexterity: "B" }, unique: true },
+      "Phoenix Crest":          { s: { Dexterity: "A" }, ed: 15, unique: true },
+      "Executioner's Halberd":  { s: { Strength: "B" }, unique: true } }
+  ),
+
+  // ── Scythes (two-handed, Str/Int) ────────────────────────────────────────
+  ...cat(
+    ["Hope Shorn", "Scythe of Wretches", "Soul Thresher"],
+    "Scythes", 68, { Strength: "B", Intelligence: "C" },
+    "Slow", true, "Melee", 2, 2, { Strength: 16, Intelligence: 10 },
+    ["melee", "aggressive", "dot"],
+    { "Soul Thresher":      { s: { Intelligence: "B", Strength: "C" }, ed: 25, unique: true },
+      "Hope Shorn":         { s: { Strength: "B" }, unique: true } }
+  ),
+
+  // ── Curved Swords (one-handed, Dexterity) ────────────────────────────────
+  ...cat(
+    ["A Supple End", "Buried Shamshir", "Cerulean Blade", "Dark Tide",
+     "Demon's Key", "Etched Yatagan", "Filleter", "Giant's Toothpick",
+     "Malwoven Hook", "Risen Blade", "Rusty Arakh", "Scimitar",
+     "Song of Steel", "Talwar", "Tempered Cutlass", "Tremble"],
+    "Curved Swords", 38, { Dexterity: "B" },
+    "Fast", false, "Melee", 2, 1, { Dexterity: 12 },
+    ["melee", "critical", "mobile", "technical"],
+    { "Demon's Key":   { s: { Dexterity: "A" }, unique: true },
+      "Song of Steel": { s: { Dexterity: "A" }, unique: true },
+      "Dark Tide":     { s: { Dexterity: "B" }, ed: 15 },
+      "Cerulean Blade":{ s: { Dexterity: "B", Intelligence: "C" }, ed: 12 } }
+  ),
+
+  // ── Curved Greatswords (two-handed, Dex/Str) ─────────────────────────────
+  ...cat(
+    ["Death's Shroud", "Divine Scimitar", "Sunbeam"],
+    "Curved Greatswords", 72, { Dexterity: "A", Strength: "C" },
+    "Normal", true, "Melee", 3, 2, { Dexterity: 18, Strength: 12 },
+    ["melee", "critical", "aggressive", "mobile"],
+    { "Sunbeam":      { s: { Dexterity: "A" }, ed: 20, unique: true },
+      "Death's Shroud":{ s: { Dexterity: "B", Strength: "B" }, unique: true } }
+  ),
+
+  // ── Hammers (one-handed, Strength) ───────────────────────────────────────
+  ...cat(
+    ["Broken Forge", "Brutal Maul", "Climber's Pick", "Crystalline Sledge",
+     "Deadblow", "Grimacing Stone", "Oxen's Vengeance", "Rostock",
+     "Singing Peal", "Splintered Wing"],
+    "Hammers", 50, { Strength: "B" },
+    "Normal", false, "Melee", 2, 1, { Strength: 14 },
+    ["melee", "stagger", "aggressive"],
+    { "Oxen's Vengeance":  { s: { Strength: "A" }, unique: true },
+      "Singing Peal":      { s: { Strength: "B", Faith: "C" }, unique: true },
+      "Crystalline Sledge":{ s: { Strength: "B" }, ed: 15 } }
+  ),
+
+  // ── Great Hammers (two-handed, Strength) ─────────────────────────────────
+  ...cat(
+    ["Bud of the Everlasting Tree", "Cinder & Stone", "Eternal Companion",
+     "Festering Cleft", "Night Protector", "Pound of Cadavers",
+     "Spliced Hammer", "The Ram", "Tooth of the Ancient One", "Weeping Earth"],
+    "Great Hammers", 90, { Strength: "A" },
+    "Slow", true, "Melee", 2, 1, { Strength: 22 },
+    ["melee", "stagger", "aggressive", "high_risk"],
+    { "Bud of the Everlasting Tree": { s: { Strength: "S" }, unique: true },
+      "The Ram":                     { s: { Strength: "A" }, unique: true },
+      "Weeping Earth":               { s: { Strength: "B", Faith: "C" }, unique: true } }
+  ),
+
+  // ── Maces (one-handed, Strength/Faith) ───────────────────────────────────
+  ...cat(
+    ["Cleric's Mace", "Comet Fall", "Malice", "Savage Cathecism",
+     "Shrike Tree", "Tapestry Mender", "The Last Stitch", "Weave Eater"],
+    "Maces", 45, { Strength: "B" },
+    "Normal", false, "Melee", 2, 1, { Strength: 12 },
+    ["melee", "defensive", "balanced"],
+    { "Cleric's Mace":    { s: { Strength: "C", Faith: "A" }, unique: true },
+      "Comet Fall":       { s: { Intelligence: "C", Faith: "B" }, ed: 20 },
+      "Savage Cathecism": { s: { Strength: "B", Faith: "C" } },
+      "Tapestry Mender":  { s: { Strength: "B", Faith: "C" } },
+      "Weave Eater":      { s: { Strength: "C", Intelligence: "B" }, ed: 15 } }
+  ),
+
+  // ── Spears (two-handed, Dex/Str) ─────────────────────────────────────────
+  ...cat(
+    ["Assegai", "Boar Spiker", "Coral Piercer", "Gnarled Harpoon",
+     "Needle Spear", "Petalled Spear", "Proud Lance", "Sacrament's Sin",
+     "Talon of the Balak Taw", "The Cage", "The Oldest Betrayal", "The Shrieker"],
+    "Spears", 52, { Dexterity: "B", Strength: "C" },
+    "Normal", true, "Melee", 2, 1, { Dexterity: 14, Strength: 10 },
+    ["melee", "mobile", "balanced"],
+    { "Sacrament's Sin":      { s: { Dexterity: "A" }, unique: true },
+      "The Cage":             { s: { Strength: "B", Dexterity: "C" }, unique: true },
+      "Proud Lance":          { s: { Dexterity: "B", Strength: "B" }, unique: true },
+      "Talon of the Balak Taw":{ s: { Dexterity: "A" }, unique: true } }
+  ),
+
+  // ── Rapiers (one-handed, Dexterity) ──────────────────────────────────────
+  ...cat(
+    ["Estoc", "Gentleman's Gambit", "Longnail", "Moon Shaft",
+     "Odessa's Saber", "Pig Sticker", "Royal Rapier", "Sinew",
+     "Siren Queen's Horn", "Stitcher", "Tucked Falcon", "Winnick's Rapier"],
+    "Rapiers", 35, { Dexterity: "A" },
+    "Fast", false, "Melee", 2, 1, { Dexterity: 16 },
+    ["melee", "critical", "technical", "burst"],
+    { "Gentleman's Gambit": { s: { Dexterity: "S" }, unique: true },
+      "Siren Queen's Horn": { s: { Dexterity: "A" }, ed: 12, unique: true },
+      "Moon Shaft":         { s: { Dexterity: "A", Intelligence: "C" }, ed: 10 } }
+  ),
+
+  // ── Clubs (one-handed, Strength) ─────────────────────────────────────────
+  ...cat(
+    ["Nail-Laden Club", "Ogre's Club"],
+    "Clubs", 44, { Strength: "B" },
+    "Normal", false, "Melee", 1, 1, { Strength: 10 },
+    ["melee", "aggressive"],
+    { "Ogre's Club": { s: { Strength: "A" }, unique: true } }
+  ),
+
+  // ── Great Clubs (two-handed, Strength) ───────────────────────────────────
+  ...cat(
+    ["Fetid Club", "The Voice of Our Lord", "Wretched Mace"],
+    "Great Clubs", 85, { Strength: "A" },
+    "Slow", true, "Melee", 2, 1, { Strength: 20 },
+    ["melee", "stagger", "high_risk"],
+    { "The Voice of Our Lord": { s: { Strength: "S", Faith: "C" }, unique: true } }
+  ),
+
+  // ── Knives (one-handed, Dexterity) ───────────────────────────────────────
+  ...cat(
+    ["A Singular Purpose", "Barbtrader", "Butcher's Work", "Glimmering Bone",
+     "Glory's Bite", "Hunter's Knife", "Jackknife", "Midnight Blade",
+     "Scowling Dirk", "Serpent's Tongue", "The Old Ways"],
+    "Knives", 28, { Dexterity: "B" },
+    "Fast", false, "Melee", 2, 2, { Dexterity: 12 },
+    ["melee", "critical", "burst", "mobile"],
+    { "The Old Ways":       { s: { Dexterity: "A" }, unique: true },
+      "Midnight Blade":     { s: { Dexterity: "A" }, unique: true },
+      "Serpent's Tongue":   { s: { Dexterity: "B" }, ed: 12 },
+      "Glory's Bite":       { s: { Dexterity: "B" }, unique: true } }
+  ),
+
+  // ── Wakizashi (one-handed, Dexterity) ────────────────────────────────────
+  ...cat(
+    ["Grass Cutter", "Hanzo Blade", "Honed Frenzy", "Katana",
+     "Tachi", "Uchigatana", "Wakizashi", "Wind of Death"],
+    "Wakizashi", 32, { Dexterity: "A" },
+    "VeryFast", false, "Melee", 2, 2, { Dexterity: 14 },
+    ["melee", "critical", "mobile", "technical"],
+    { "Hanzo Blade":   { s: { Dexterity: "S" }, unique: true },
+      "Wind of Death": { s: { Dexterity: "A" }, unique: true },
+      "Tachi":         { s: { Dexterity: "B", Strength: "C" } } }
+  ),
+
 ]
 
 // ─── ARMADURAS ────────────────────────────────────────────────────────────────
@@ -311,7 +375,7 @@ const ARMOR_SETS = [
     gloves: { defense: 4, resistances: { Fire: 1, Ice: 1 }, weight: 0.8 },
     boots:  { defense: 4, resistances: { Fire: 1, Ice: 1 }, weight: 0.9 },
     totalDefense: 21,
-    resistances: { Fire: 7, Ice: 7, Lightning: 3, Poison: 5 },
+    resistances: { Fire: 7, Ice: 7, Lightning: 3, Plague: 5, Bleed: 3 },
     setBonusThreshold: 4,
     setBonusDescription: "Aumenta velocidade de rolagem",
     synergyTags: ["mobile", "ranged", "critical", "dot"],
@@ -326,7 +390,7 @@ const ARMOR_SETS = [
     gloves: { defense: 8,  resistances: { Fire: 3, Ice: 3 }, weight: 1.8 },
     boots:  { defense: 9,  resistances: { Fire: 4, Ice: 4 }, weight: 2.0 },
     totalDefense: 49,
-    resistances: { Fire: 20, Ice: 20, Lightning: 15, Poison: 12 },
+    resistances: { Fire: 20, Ice: 20, Lightning: 15, Plague: 12, Bleed: 10 },
     setBonusThreshold: 4,
     setBonusDescription: "Reduz custo de estamina em ataques",
     synergyTags: ["melee", "balanced", "sustain", "defensive"],
@@ -341,7 +405,7 @@ const ARMOR_SETS = [
     gloves: { defense: 16, resistances: { Fire: 7,  Ice: 7  }, weight: 3.5 },
     boots:  { defense: 18, resistances: { Fire: 8,  Ice: 8  }, weight: 4.0 },
     totalDefense: 94,
-    resistances: { Fire: 40, Ice: 40, Lightning: 30, Poison: 20 },
+    resistances: { Fire: 40, Ice: 40, Lightning: 30, Plague: 20, Bleed: 18 },
     setBonusThreshold: 2,
     setBonusDescription: "Reduz dano recebido em 15% ao bloquear",
     synergyTags: ["defensive", "sustain", "slow_paced", "stagger"],
@@ -552,14 +616,14 @@ const ENCHANTMENTS = [
   {
     name: "Sharp",
     effects: ["Aumenta escalamento com Dexterity em um grau"],
-    compatibleCategories: ["Straight Swords", "Double Daggers", "Bows", "Knives"],
+    compatibleCategories: ["Straight Swords", "Double Daggers", "Bows", "Knives", "Wakizashi", "Rapiers", "Curved Swords"],
     patchVersion: "0.1",
     needsReview: false,
   },
   {
     name: "Heavy",
     effects: ["Aumenta escalamento com Strength em um grau"],
-    compatibleCategories: ["Great Swords", "Great Axes", "Great Hammers", "Axes", "Hammers"],
+    compatibleCategories: ["Great Swords", "Great Axes", "Great Hammers", "Axes", "Hammers", "Clubs", "Great Clubs"],
     patchVersion: "0.1",
     needsReview: false,
   },

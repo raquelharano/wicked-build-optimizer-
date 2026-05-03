@@ -3,19 +3,19 @@
 import { useState, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
-const ATTRIBUTES = ["Strength", "Dexterity", "Intelligence", "Faith", "Vitality"]
-const ELEMENTS   = ["Fire", "Ice", "Lightning", "Poison", "None"]
+const ATTRIBUTES = ["Strength", "Dexterity", "Intelligence", "Faith"]
+const ELEMENTS   = ["Fire", "Ice", "Lightning", "Plague", "Bleed", "None"]
 
 const ATTRIBUTE_LABELS: Record<string, string> = {
   Strength:     "Força",
   Dexterity:    "Destreza",
   Intelligence: "Inteligência",
   Faith:        "Fé",
-  Vitality:     "Vitalidade",
 }
 
 const ELEMENT_LABELS: Record<string, string> = {
-  Fire: "Fogo", Ice: "Gelo", Lightning: "Raio", Poison: "Veneno", None: "Nenhum"
+  Fire: "Fogo", Ice: "Gelo", Lightning: "Raio",
+  Plague: "Praga", Bleed: "Sangramento", None: "Nenhum",
 }
 
 interface Props {
