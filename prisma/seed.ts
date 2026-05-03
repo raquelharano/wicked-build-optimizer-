@@ -186,11 +186,11 @@ const WEAPONS = [
       "Spherin":          { s: { Intelligence: "S" },         ed: 55, unique: true },
       "Cursed Crone":     { s: { Intelligence: "C", Faith: "B" }, ed: 38 },
       "Alsoc's Ruined Staff": { s: { Intelligence: "D" },    ed: 20 },
-      "Gnarled Staff":    { s: { Intelligence: "C" },         ed: 30 },
+      "Gnarled Staff":    { s: { Intelligence: "C", Focus: "B" }, ed: 30 },
       "Bear Slayer":      { s: { Strength: "B" } },
       "Dried Hive":       { s: { Intelligence: "B" },         ed: 32 },
       "False Truth":      { s: { Intelligence: "B", Faith: "C" }, ed: 36 },
-      "Pinwheel":         { s: { Intelligence: "A" },         ed: 48 } }
+      "Pinwheel":         { s: { Intelligence: "A", Focus: "B" }, ed: 48 } }
   ),
 
   // ── Wands (one-handed, Intelligence, Ranged) ──────────────────────────────
@@ -200,7 +200,7 @@ const WEAPONS = [
     "Fast", false, "Ranged", 2, 2, { Intelligence: 18 },
     ["ranged", "elemental", "dot", "magic"],
     { "Flame Becomes Us": { ed: 55, unique: true },
-      "Sanglier Staff":   { ed: 48 } }
+      "Sanglier Staff":   { s: { Intelligence: "B", Focus: "B" }, ed: 48 } }
   ),
 
   // ── Halberds (two-handed, Dex/Str) ───────────────────────────────────────
@@ -213,7 +213,9 @@ const WEAPONS = [
     ["melee", "balanced", "stagger"],
     { "God's Reach":            { s: { Strength: "B", Dexterity: "B" }, unique: true },
       "Phoenix Crest":          { s: { Dexterity: "A" }, ed: 15, unique: true },
-      "Executioner's Halberd":  { s: { Strength: "B" }, unique: true } }
+      "Executioner's Halberd":  { s: { Strength: "B" }, unique: true },
+      "Bolein Polearm":         { s: { Dexterity: "C", Focus: "B" } },
+      "Regal Cleft":            { s: { Strength: "C", Focus: "C" } } }
   ),
 
   // ── Scythes (two-handed, Str/Int) ────────────────────────────────────────

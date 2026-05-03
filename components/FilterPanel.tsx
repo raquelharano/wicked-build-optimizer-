@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
-const ATTRIBUTES = ["Strength", "Dexterity", "Intelligence", "Faith"]
+const ATTRIBUTES = ["Strength", "Dexterity", "Intelligence", "Faith", "Focus"]
 const ELEMENTS   = ["Fire", "Ice", "Lightning", "Plague", "Bleed", "None"]
 
 const ATTRIBUTE_LABELS: Record<string, string> = {
@@ -11,6 +11,7 @@ const ATTRIBUTE_LABELS: Record<string, string> = {
   Dexterity:    "Destreza",
   Intelligence: "Inteligência",
   Faith:        "Fé",
+  Focus:        "Foco",
 }
 
 const ELEMENT_LABELS: Record<string, string> = {

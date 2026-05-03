@@ -32,11 +32,13 @@ export async function POST(req: NextRequest) {
   }
 
   // Tenta gerar builds com filtros completos; relaxa progressivamente se necessário
+  // Passo 5 (atributos=[]) é o último recurso: ignora escalamento e mostra as melhores armas do tipo
   const relaxationSteps = [
     { facets: filters.facets, element: filters.element, attributes: filters.attributes },
     { facets: [], element: filters.element, attributes: filters.attributes },
     { facets: [], element: null, attributes: filters.attributes },
     { facets: [], element: null, attributes: filters.attributes.slice(0, 1) },
+    { facets: [], element: null, attributes: [] },
   ]
 
   for (let step = 0; step < relaxationSteps.length; step++) {
@@ -71,15 +73,14 @@ async function generateBuilds(
 
   if (weapons.length === 0) return []
 
-  // Se o usuário selecionou atributos, filtrar armas que escalam com pelo menos um deles
-  const compatibleWeapons = attributes.length > 0
+  // Filtrar armas que escalam com pelo menos um dos atributos selecionados.
+  // Se nenhuma passar (ex: Axes + Faith), retorna [] para ativar o relaxamento externo.
+  const weaponsToEvaluate = attributes.length > 0
     ? weapons.filter((w) => {
         const scaling = w.scalingTable as Record<string, string>
         return attributes.some((attr) => attr in scaling)
       })
     : weapons
-  // Se nenhuma arma da categoria escala com os atributos escolhidos, usar todas (relaxamento)
-  const weaponsToEvaluate = compatibleWeapons.length > 0 ? compatibleWeapons : weapons
 
   // Buscar itens de suporte
   const [armorSets, runes, gems, facets] = await Promise.all([
