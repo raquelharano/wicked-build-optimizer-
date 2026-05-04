@@ -17,6 +17,31 @@ const ARCHETYPES: Archetype[] = [
   "SpellbladeHybrid",
 ]
 
+// Mapeamento de categoria de arma → categoria de runa compatível
+const WEAPON_RUNE_CATEGORY: Record<string, string> = {
+  "Axes": "one-handed",
+  "Straight Swords": "one-handed",
+  "Curved Swords": "one-handed",
+  "Rapiers": "one-handed",
+  "Hammers": "one-handed",
+  "Maces": "one-handed",
+  "Clubs": "one-handed",
+  "Knives": "one-handed",
+  "Wakizashi": "one-handed",
+  "Great Axes": "two-handed",
+  "Great Swords": "two-handed",
+  "Great Hammers": "two-handed",
+  "Great Clubs": "two-handed",
+  "Halberds": "two-handed",
+  "Scythes": "two-handed",
+  "Spears": "two-handed",
+  "Curved Great Swords": "two-handed",
+  "Bows": "Bows",
+  "Double Daggers": "Double Daggers",
+  "Staves": "Staves",
+  "Wands": "Wands",
+}
+
 // POST /api/recommendations
 export async function POST(req: NextRequest) {
   let filters: BuildFilters
@@ -31,8 +56,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Tipo de arma é obrigatório", code: 400 }, { status: 400 })
   }
 
-  // Tenta gerar builds com filtros completos; relaxa progressivamente se necessário
-  // Passo 5 (atributos=[]) é o último recurso: ignora escalamento e mostra as melhores armas do tipo
   const relaxationSteps = [
     { facets: filters.facets, element: filters.element, attributes: filters.attributes },
     { facets: [], element: filters.element, attributes: filters.attributes },
@@ -66,15 +89,12 @@ async function generateBuilds(
   element: string | null,
   facetIds: string[]
 ) {
-  // Buscar armas do tipo selecionado
   const weapons = await prisma.weapon.findMany({
     where: { category: weaponType },
   })
 
   if (weapons.length === 0) return []
 
-  // Filtrar armas que escalam com pelo menos um dos atributos selecionados.
-  // Se nenhuma passar (ex: Axes + Faith), retorna [] para ativar o relaxamento externo.
   const weaponsToEvaluate = attributes.length > 0
     ? weapons.filter((w) => {
         const scaling = w.scalingTable as Record<string, string>
@@ -82,19 +102,20 @@ async function generateBuilds(
       })
     : weapons
 
-  // Buscar itens de suporte
-  const [armorSets, runes, gems, facets] = await Promise.all([
+  if (weaponsToEvaluate.length === 0) return []
+
+  const [armorSets, allRunes, allGems, allFacets, allEnchantments] = await Promise.all([
     prisma.armorSet.findMany(),
-    prisma.rune.findMany({
-      where: facetIds.length > 0
-        ? { compatibleWeaponTypes: { hasSome: [weaponType, ""] } }
-        : undefined,
-    }),
+    prisma.rune.findMany(),
     prisma.gem.findMany(),
-    prisma.facet.findMany(
-      facetIds.length > 0 ? { where: { id: { in: facetIds } } } : undefined
-    ),
+    prisma.facet.findMany(),
+    prisma.enchantment.findMany(),
   ])
+
+  // Facets selecionados pelo usuário (se algum)
+  const userFacets = facetIds.length > 0
+    ? allFacets.filter(f => facetIds.includes(f.id))
+    : []
 
   if (armorSets.length === 0) return []
 
@@ -105,21 +126,14 @@ async function generateBuilds(
     let bestBuild = null
 
     for (const weapon of weaponsToEvaluate) {
-      // Filtrar runas compatíveis com a arma
-      const compatibleRunes = runes.filter(
-        (r: { compatibleWeaponTypes: string[] }) =>
-          r.compatibleWeaponTypes.length === 0 || r.compatibleWeaponTypes.includes(weaponType)
-      )
-
-      // Selecionar armadura mais adequada ao archetype
       const armor = selectArmorForArchetype(armorSets, archetype)
 
       const scoreInput = {
         weapon: weapon as any,
         armorSet: armor as any,
-        runes: compatibleRunes.slice(0, 2) as any[],
-        gems: gems.slice(0, 2) as any[],
-        facets: facets as any[],
+        runes: [] as any[],
+        gems: [] as any[],
+        facets: userFacets as any[],
         selectedAttributes: attributes,
         selectedElement: element,
         archetype,
@@ -131,26 +145,37 @@ async function generateBuilds(
 
       if (totalScore > bestScore) {
         bestScore = totalScore
-        bestBuild = { weapon, armor, runes: compatibleRunes.slice(0, 2), gems: gems.slice(0, 2), facets, totalScore }
+        bestBuild = { weapon, armor }
       }
     }
 
     if (bestBuild && bestScore >= MIN_BUILD_SCORE) {
-      const { weapon, armor, runes: selectedRunes, gems: selectedGems, facets: selectedFacets, totalScore } = bestBuild
+      const { weapon, armor } = bestBuild
 
-      // Determinar atributo primário de escalamento
+      // ── Runas: 4 compatíveis com o tipo de arma, priorizando o elemento ──
+      const selectedRunes = selectRunes(allRunes, weaponType, element)
+
+      // ── Gema: 1, priorizando elemento da build ────────────────────────────
+      const selectedGem = selectGem(allGems, element)
+
+      // ── Encantamentos: 4 positivos + 1 negativo ───────────────────────────
+      const selectedEnchantments = selectEnchantments(allEnchantments, archetype, element)
+
+      // ── Facet: usar o selecionado ou sugerir o melhor para o archetype ────
+      const suggestedFacet = userFacets.length === 0
+        ? suggestFacet(allFacets, archetype, element)
+        : null
+
       const scalingTable = weapon.scalingTable as Record<string, ScalingGrade>
       const primaryAttribute = attributes[0] || Object.keys(scalingTable)[0] || "Strength"
       const primaryGrade: ScalingGrade = scalingTable[primaryAttribute] || "C"
 
-      // Calcular distribuição de atributos sugerida
       const attrDistribution: Record<string, number> = {}
       for (const attr of attributes.length > 0 ? attributes : [primaryAttribute]) {
         attrDistribution[attr] = 20
       }
       const attributeTotal = Object.values(attrDistribution).reduce((a, b) => a + b, 0)
 
-      // Determinar dificuldade com base no archetype
       const difficultyMap: Record<Archetype, Difficulty> = {
         MeleeBerserker: "Medium",
         TankBruiser: "Easy",
@@ -172,7 +197,7 @@ async function generateBuilds(
         elementalType: element,
         armorWeightClass: armor.weightClass as WeightClass,
         runeNames: selectedRunes.map((r: any) => r.name),
-        facetNames: selectedFacets.map((f: any) => f.name),
+        facetNames: [...userFacets, ...(suggestedFacet ? [suggestedFacet] : [])].map((f: any) => f.name),
         strengths: [],
         weaknesses: [],
       })
@@ -188,7 +213,7 @@ async function generateBuilds(
         elementalType: element,
         armorWeightClass: armor.weightClass as WeightClass,
         runeNames: selectedRunes.map((r: any) => r.name),
-        facetNames: selectedFacets.map((f: any) => f.name),
+        facetNames: [...userFacets, ...(suggestedFacet ? [suggestedFacet] : [])].map((f: any) => f.name),
         strengths: [],
         weaknesses: [],
       })
@@ -199,7 +224,7 @@ async function generateBuilds(
         archetype,
         playstyle: ARCHETYPE_TAGS[archetype].join(", "),
         difficulty: difficultyMap[archetype],
-        score: Math.round(totalScore * 100) / 100,
+        score: Math.round(bestScore * 100) / 100,
         isStarterBuild: false,
         patchVersion: weapon.patchVersion,
         sourceUrl: null,
@@ -215,18 +240,113 @@ async function generateBuilds(
         armorSet: armor,
         accessories: [],
         runes: selectedRunes,
-        gems: selectedGems,
-        facets: selectedFacets,
-        enchantments: [],
+        gems: selectedGem ? [selectedGem] : [],
+        facets: userFacets,
+        suggestedFacet,
+        enchantments: selectedEnchantments,
       })
     }
   }
 
-  // Ordenar por score e limitar a 5
   return builds.sort((a, b) => b.score - a.score).slice(0, 5)
 }
 
-// Seleciona a armadura mais adequada para cada archetype
+// ── Seleciona 4 runas compatíveis com o tipo de arma e o elemento da build ──
+function selectRunes(allRunes: any[], weaponCategory: string, element: string | null): any[] {
+  const runeCategory = WEAPON_RUNE_CATEGORY[weaponCategory] ?? "one-handed"
+
+  const compatible = allRunes.filter(r => {
+    const types: string[] = r.compatibleWeaponTypes
+    if (types.length === 0) return true
+    return types.includes(runeCategory) || types.includes(weaponCategory)
+  })
+
+  if (compatible.length === 0) return []
+
+  const elemental = (element && element !== "None")
+    ? compatible.filter(r => r.elementalType === element)
+    : []
+  const neutral = compatible.filter(r => !r.elementalType)
+
+  const selected: any[] = []
+  if (elemental.length >= 2) {
+    selected.push(...elemental.slice(0, 2), ...neutral.slice(0, 2))
+  } else {
+    selected.push(...elemental, ...neutral.slice(0, 4 - elemental.length))
+  }
+
+  return selected.slice(0, 4)
+}
+
+// ── Seleciona 1 gema, priorizando a que combina com o elemento ──────────────
+function selectGem(allGems: any[], element: string | null): any | null {
+  if (element && element !== "None") {
+    const match = allGems.find(g => g.elementalType === element && g.rarity === "Rare")
+      || allGems.find(g => g.elementalType === element)
+    if (match) return match
+  }
+  return allGems.find(g => g.elementalType === null && g.rarity === "Rare")
+    || allGems.find(g => g.elementalType === null)
+    || allGems[0]
+    || null
+}
+
+// ── Seleciona 4 encantamentos positivos + 1 negativo (plagued downside) ─────
+function selectEnchantments(allEnchantments: any[], archetype: Archetype, element: string | null): any[] {
+  const debuffs = allEnchantments.filter(e =>
+    (e.compatibleCategories as string[]).includes("debuff")
+  )
+  const positives = allEnchantments.filter(e =>
+    !(e.compatibleCategories as string[]).includes("debuff")
+  )
+
+  // Tags de preferência por archetype
+  const archetypePrefs: Record<Archetype, string[]> = {
+    MeleeBerserker:  ["damage", "stamina", "stagger"],
+    TankBruiser:     ["lifesteal", "stagger", "damage"],
+    ElementalRanger: [element?.toLowerCase() ?? "fire", "fire", "ice", "lightning", "plague"],
+    CriticalAssassin:["critical", "damage"],
+    SpellbladeHybrid:["rune", "focus", "damage"],
+  }
+  const prefs = archetypePrefs[archetype]
+
+  const scored = positives.map(e => ({
+    e,
+    score: (e.compatibleCategories as string[]).filter(c => prefs.includes(c)).length,
+  })).sort((a, b) => b.score - a.score)
+
+  const top4 = scored.slice(0, 4).map(s => s.e)
+  const debuff = debuffs[0] ?? null
+
+  return debuff ? [...top4, debuff] : top4
+}
+
+// ── Sugere o melhor facet para o archetype/elemento quando nenhum foi selecionado ──
+function suggestFacet(allFacets: any[], archetype: Archetype, element: string | null): any | null {
+  const prefs: Record<string, string[]> = {
+    MeleeBerserker:       ["Heavy", "Clumsy", "Mundane"],
+    TankBruiser:          ["Reliable", "Blunt", "Heavy"],
+    ElementalRanger_Fire: ["Festering", "Flaming", "Quick"],
+    ElementalRanger_Ice:  ["Frigid", "Nimble", "Quick"],
+    ElementalRanger_Lightning: ["Voltaic", "Quick", "Nimble"],
+    ElementalRanger:      ["Quick", "Nimble", "Voltaic"],
+    CriticalAssassin:     ["Sharp", "Keen", "Razor"],
+    SpellbladeHybrid:     ["Ritualistic", "Nimble"],
+  }
+
+  const key = (element && element !== "None")
+    ? `${archetype}_${element}`
+    : archetype
+
+  const list = prefs[key] ?? prefs[archetype] ?? []
+  for (const name of list) {
+    const found = allFacets.find(f => f.name === name)
+    if (found) return found
+  }
+  return allFacets[0] ?? null
+}
+
+// ── Seleciona a armadura mais adequada para o archetype ─────────────────────
 function selectArmorForArchetype(armorSets: any[], archetype: Archetype) {
   const preferred: Record<Archetype, string> = {
     MeleeBerserker: "Light",

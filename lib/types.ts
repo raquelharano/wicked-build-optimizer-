@@ -80,6 +80,15 @@ export interface Facet {
   needsReview: boolean
 }
 
+export interface Enchantment {
+  id: string
+  name: string
+  effects: string[]
+  compatibleCategories: string[]
+  patchVersion: string
+  needsReview: boolean
+}
+
 export interface Accessory {
   id: string
   name: string
@@ -113,6 +122,8 @@ export interface Build {
   runes: Rune[]
   gems: Gem[]
   facets: Facet[]
+  suggestedFacet: Facet | null
+  enchantments: Enchantment[]
 }
 
 // Filtros que o usuário seleciona na interface

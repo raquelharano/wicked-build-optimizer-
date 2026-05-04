@@ -6,10 +6,11 @@ import { ArchetypeBadge } from "./ArchetypeBadge"
 import { DifficultyBadge } from "./DifficultyBadge"
 
 const ELEMENT_COLORS: Record<string, string> = {
-  Fire: "text-orange-400",
-  Ice: "text-cyan-400",
+  Fire:      "text-orange-400",
+  Ice:       "text-cyan-400",
   Lightning: "text-yellow-400",
-  Poison: "text-green-400",
+  Plague:    "text-green-400",
+  Bleed:     "text-red-400",
 }
 
 export function BuildCard({ build, rank }: { build: Build; rank: number }) {
@@ -18,13 +19,23 @@ export function BuildCard({ build, rank }: { build: Build; rank: number }) {
   const topStrengths = build.strengths.slice(0, 3)
   const scorePercent = Math.round(build.score * 10)
 
+  // Separa encantamentos positivos e negativo
+  const debuff = build.enchantments.find(e =>
+    (e.compatibleCategories ?? []).includes("debuff")
+  )
+  const positiveEnchants = build.enchantments.filter(e =>
+    !(e.compatibleCategories ?? []).includes("debuff")
+  )
+
+  const displayFacet = build.facets[0] ?? build.suggestedFacet ?? null
+  const facetIsSuggested = build.facets.length === 0 && build.suggestedFacet !== null
+
   return (
     <article className="bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg overflow-hidden hover:border-[#c9a84c]/40 transition-colors">
 
       {/* Header */}
       <div className="p-4 flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          {/* Número de ranking */}
           <div className="flex-shrink-0 w-7 h-7 rounded-full bg-[#222] border border-[#2e2e2e] flex items-center justify-center text-xs text-[#7a7268] font-mono">
             {rank}
           </div>
@@ -47,14 +58,12 @@ export function BuildCard({ build, rank }: { build: Build; rank: number }) {
           </div>
         </div>
 
-        {/* Score */}
         <div className="flex-shrink-0 text-right">
           <div className="text-lg font-bold text-[#c9a84c]">{scorePercent}</div>
           <div className="text-[10px] text-[#7a7268] uppercase tracking-wider">score</div>
         </div>
       </div>
 
-      {/* Divisor */}
       <div className="divider-gold mx-4" />
 
       {/* Info principal */}
@@ -67,6 +76,17 @@ export function BuildCard({ build, rank }: { build: Build; rank: number }) {
           <span className="text-[#7a7268] uppercase tracking-wider">Armadura</span>
           <p className="text-[#e8e0d0] mt-0.5">{build.armorSet.name}</p>
         </div>
+        {displayFacet && (
+          <div className="col-span-2">
+            <span className="text-[#7a7268] uppercase tracking-wider">
+              Facet{facetIsSuggested && <span className="text-[#c9a84c] ml-1 normal-case">(sugestão)</span>}
+            </span>
+            <p className="text-[#e8e0d0] mt-0.5">
+              {displayFacet.name}
+              <span className="text-[#7a7268] ml-1.5 text-[10px]">— {displayFacet.effectDescription}</span>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Pontos fortes */}
@@ -94,25 +114,58 @@ export function BuildCard({ build, rank }: { build: Build; rank: number }) {
       {expanded && (
         <div className="border-t border-[#2e2e2e] p-4 space-y-4 bg-[#161616]">
 
-          {/* Runas e Gemas */}
-          {(build.runes.length > 0 || build.gems.length > 0) && (
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              {build.runes.length > 0 && (
-                <div>
-                  <p className="text-[#7a7268] uppercase tracking-wider mb-1">Runas</p>
-                  {build.runes.map(r => (
-                    <p key={r.id} className="text-[#c8c0b0]">• {r.name}</p>
-                  ))}
-                </div>
-              )}
-              {build.gems.length > 0 && (
-                <div>
-                  <p className="text-[#7a7268] uppercase tracking-wider mb-1">Gemas</p>
-                  {build.gems.map(g => (
-                    <p key={g.id} className="text-[#c8c0b0]">• {g.name}</p>
-                  ))}
-                </div>
-              )}
+          {/* Runas e Gema */}
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            {build.runes.length > 0 && (
+              <div>
+                <p className="text-[#7a7268] uppercase tracking-wider mb-1">
+                  Runas <span className="text-[#4a4540] normal-case font-normal">(4 slots)</span>
+                </p>
+                {build.runes.map(r => (
+                  <p key={r.id} className="text-[#c8c0b0]">
+                    • {r.name}
+                    {r.elementalType && (
+                      <span className={`ml-1 text-[10px] ${ELEMENT_COLORS[r.elementalType] ?? ""}`}>
+                        [{r.elementalType}]
+                      </span>
+                    )}
+                  </p>
+                ))}
+              </div>
+            )}
+            {build.gems.length > 0 && (
+              <div>
+                <p className="text-[#7a7268] uppercase tracking-wider mb-1">
+                  Gema <span className="text-[#4a4540] normal-case font-normal">(1 slot)</span>
+                </p>
+                {build.gems.map(g => (
+                  <p key={g.id} className="text-[#c8c0b0]">• {g.name}</p>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Encantamentos */}
+          {build.enchantments.length > 0 && (
+            <div className="text-xs">
+              <p className="text-[#7a7268] uppercase tracking-wider mb-1.5">
+                Encantamentos <span className="text-[#4a4540] normal-case font-normal">(arma roxa: 4 positivos + 1 penalidade)</span>
+              </p>
+              <div className="space-y-0.5">
+                {positiveEnchants.map(e => (
+                  <p key={e.id} className="flex items-start gap-1.5 text-[#c8c0b0]">
+                    <span className="text-[#c9a84c] mt-px">+</span>
+                    {e.name}
+                  </p>
+                ))}
+                {debuff && (
+                  <p className="flex items-start gap-1.5 text-red-400/80 mt-1">
+                    <span className="mt-px">−</span>
+                    {debuff.name}
+                    <span className="text-[#4a4540] text-[10px]">({debuff.effects[0]})</span>
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
